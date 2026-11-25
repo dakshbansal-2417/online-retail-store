@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORS Online Retail Store</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#1d2330; --muted:#5d6675; --line:#e1e4ea; --accent:#1f6feb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#11151c; --card:#1a2029; --ink:#e6e9ef; --muted:#9aa4b2; --line:#2c3440; --accent:#58a6ff; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+  main { max-width: 860px; margin: 0 auto; padding: 48px 16px; }
+  h1 { font-size: 30px; margin: 0 0 8px; }
+  p.lead { color: var(--muted); margin: 0 0 32px; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  a.card { display:block; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px;
+           color:inherit; text-decoration:none; }
+  a.card:hover { border-color: var(--accent); }
+  a.card b { display:block; font-size:18px; margin-bottom:6px; color: var(--accent); }
+  code { background: var(--card); border:1px solid var(--line); border-radius:6px; padding:2px 6px; }
+  footer { color: var(--muted); font-size: 14px; margin-top: 40px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ORS Online Retail Store</h1>
+  <p class="lead">Online Retail Store Management System built with Linux systems programming:
+     a C server using sockets, threads, processes and MySQL, served on the web through Apache.</p>
+  <div class="grid">
+    <a class="card" href="/ors-cgi/catalog.cgi"><b>Product catalogue</b>
+      Browse and search all products with live stock levels.</a>
+    <a class="card" href="/ors-cgi/reports.cgi"><b>Admin reports</b>
+      Sales, revenue, top products and low-stock alerts (login required).</a>
+  </div>
+  <footer>
+    Shopping, orders and inventory management are done in the terminal client:
+    <code>./bin/ors_client &lt;server-ip&gt; 8080</code>
+  </footer>
+</main>
+</body>
+</html>

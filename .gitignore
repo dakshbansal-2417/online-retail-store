@@ -1,0 +1,18 @@
+# build output
+bin/
+*.o
+
+# local configuration (contains passwords)
+config/server.conf
+config/web.conf
+
+# runtime files
+logs/
+*.log
+*.pid
+*.csv
+
+# submission archive and large media
+*_OSLab_Project.zip
+deliverables/*.mp4
+deliverables/*.mkv

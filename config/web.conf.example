@@ -1,0 +1,7 @@
+# Database settings for the Apache CGI pages (read-only account).
+# Installed as /etc/ors/web.conf by scripts/install_web.sh
+db_host = localhost
+db_port = 3306
+db_user = ors_web
+db_pass = OrsWeb@2025
+db_name = retail_store

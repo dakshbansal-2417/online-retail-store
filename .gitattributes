@@ -1,0 +1,6 @@
+# Always use Linux line endings so scripts and sources work on Linux/WSL
+* text=auto eol=lf
+*.pptx binary
+*.pdf binary
+*.png binary
+*.mp4 binary

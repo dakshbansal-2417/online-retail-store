@@ -1,0 +1,25 @@
+# ORS server configuration
+# Copy to config/server.conf and protect it:   chmod 600 config/server.conf
+# Format: key = value   (comments only on their own line)
+
+# --- MySQL connection (account created by sql/db_users.sql) ---
+db_host = localhost
+db_port = 3306
+db_user = ors_app
+db_pass = OrsApp@2025
+db_name = retail_store
+
+# --- TCP server ---
+server_port = 8080
+# counting-semaphore limit on simultaneous clients
+max_clients = 32
+# seconds of inactivity before a client is disconnected
+idle_timeout = 900
+
+# --- files (use absolute paths when running as a daemon with -d) ---
+log_file = logs/server.log
+pid_file = logs/server.pid
+
+# --- used on first start only: created if no admin account exists yet ---
+admin_user = admin
+admin_password = Admin@123
