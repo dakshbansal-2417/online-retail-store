@@ -59,6 +59,35 @@ It also copies `config/server.conf.example` to `config/server.conf` with mode 60
 > change them, put the same values in `config/server.conf` (`db_pass`) and
 > `/etc/ors/web.conf`.
 
+### 3b. Alternative: MySQL installed on Windows, server running in WSL
+
+If MySQL Server 8 is already installed on Windows, you don't need `mysql-server` in WSL.
+Install only `libmysqlclient-dev` in WSL. Then load the database from **Windows
+PowerShell**, inside the project folder. Run one file per command, and type your
+MySQL root password when asked:
+
+```powershell
+$mysql = "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
+& $mysql -u root -p -e "source sql/schema.sql"
+& $mysql -u root -p -e "source sql/db_users_remote.sql"
+& $mysql -u root -p -e "source sql/seed.sql"
+& $mysql -u root -p -e "source sql/sample_data.sql"
+```
+
+`db_users_remote.sql` creates the accounts for `'%'` (any host). Connections from
+WSL arrive from the WSL virtual network, not from `localhost`.
+
+In `config/server.conf` set:
+
+```
+db_host = wsl-host
+```
+
+`wsl-host` is a special value: the server reads the kernel routing table
+(`/proc/net/route`) and connects to the Windows machine automatically, even when
+its IP changes after a reboot. Use the same setting in `/etc/ors/web.conf` for
+the web pages.
+
 ## 4. Start the server
 
 ```bash
@@ -114,6 +143,9 @@ Open in a browser:
 ```bash
 # 20 customers race for 5 units of product 3: exactly 5 orders must succeed
 ./bin/ors_loadtest -i 3 -n 20 -s 5 -a admin -w 'Admin@123'
+
+# same, paying by card, so every order also forks a payment-gateway process
+./bin/ors_loadtest -i 3 -n 12 -s 4 -m card -a admin -w 'Admin@123'
 ```
 
 Raise `max_clients` in `config/server.conf` above 20 for larger runs.

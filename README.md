@@ -61,7 +61,13 @@ make                              # builds bin/ors_server, ors_client, ors_loadt
 ./scripts/install_web.sh          # optional: Apache pages at http://localhost/ors/
 ```
 
-See [docs/INSTALLATION.md](docs/INSTALLATION.md) for the full guide.
+See [docs/INSTALLATION.md](docs/INSTALLATION.md) for the full guide. It also
+covers MySQL installed on **Windows** with the server running in **WSL**
+(`db_host = wsl-host`).
+
+**Tested:** every command was run against MySQL 8.0, including a concurrency test
+where 20 processes race for 5 units and exactly 5 orders succeed. Results are in
+[docs/DESIGN.md §10](docs/DESIGN.md#10-testing).
 
 ## Test data
 

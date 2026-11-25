@@ -3,6 +3,7 @@
 # Format: key = value   (comments only on their own line)
 
 # --- MySQL connection (account created by sql/db_users.sql) ---
+# Use "wsl-host" when the server runs in WSL and MySQL runs on Windows
 db_host = localhost
 db_port = 3306
 db_user = ors_app

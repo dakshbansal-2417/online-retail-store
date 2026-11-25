@@ -226,12 +226,22 @@ Cash-on-delivery orders change from payment PENDING to PAID when they are marked
 
 ## 10. Testing
 
-| Test | How |
-|---|---|
-| Build | `make` with `-Wall -Wextra`: no warnings |
-| Protocol | `nc localhost 8080`, then `HELP`, `LOGIN|admin|Admin@123`, ... |
-| Overselling | `ors_loadtest -i <id> -n 20 -s 5 -a admin -w Admin@123`: exactly 5 orders |
-| Payment | Approved card, declined card, UPI `fail@bank`, an invalid Luhn number and an expired card are each handled correctly |
-| Admission control | Set `max_clients = 2` and open 3 clients: the third gets "Server busy" |
-| Signals | `kill -USR1 <pid>` writes statistics to the log, `kill -HUP` reopens the log, Ctrl+C shuts down gracefully |
-| Single instance | Starting a second server prints "already running" |
+These tests were run against MySQL 8.0 (server in Ubuntu 24.04 WSL2, MySQL on Windows). They all passed.
+
+| Test | How | Result |
+|---|---|---|
+| Build | `make` with `-Wall -Wextra -Wshadow -Wformat=2` | 0 warnings |
+| Customer flow | Register (weak password rejected, duplicate username rejected), login (wrong password rejected), cart, address required before checkout, checkout, order list, change password | Correct |
+| Payments | Declined card `…0000`, bad Luhn number, expired card, UPI `fail…`: rejected and the cart is unchanged. Valid card, UPI and COD: order placed | Correct |
+| Admin inventory | Add, duplicate name, invalid price, update, restock, adjust, hard delete (never sold), soft delete (sold) | Correct; every change appears in the stock log |
+| Order life cycle | Invalid jump PLACED→SHIPPED refused; PLACED→…→DELIVERED; COD marked PAID on delivery; cancelling restocks items and sets payment REFUNDED / VOID; cancelling a shipped order is refused | Correct |
+| Access control | Customer calling an admin command, admin calling a customer command, disabled account logging in | Refused |
+| SQL injection | Product name `O'Brien "quote"; DROP TABLE users;--`, search for `%` | Stored and matched literally |
+| Reports | All 6 reports, cancelled orders excluded from revenue | Correct |
+| Overselling | `ors_loadtest -i 2 -n 20 -s 5`: 20 processes race for 5 units | 5 sold, 15 rejected, stock 0 |
+| Overselling with card payments | `ors_loadtest -i 3 -n 12 -s 4 -m card` (one gateway fork per order) | 4 sold, 0 zombie processes |
+| Admission control | `max_clients = 2`, 3 connections | 3rd gets "Server busy" |
+| Signals | `kill -USR1`, `kill -HUP`, Ctrl+C (SIGINT), `kill` (SIGTERM) | Stats logged, log reopened, graceful shutdown, PID file removed |
+| Single instance | Start a second server | "Another ORS server is already running" |
+| Daemon | `ors_server -d` | Detached (no tty), stops on SIGTERM |
+| CGI | `catalog.cgi?q=tea`, `reports.cgi` with the real database | Valid HTML, 0 errors |

@@ -21,6 +21,32 @@ static char *trim(char *s)
     return s;
 }
 
+/*
+ * "wsl-host" means: the Windows machine that hosts this WSL2 VM, i.e. the
+ * default gateway. Read it from the kernel routing table /proc/net/route,
+ * where addresses are stored as little-endian hex.
+ */
+static int default_gateway(char *out, size_t size)
+{
+    FILE *fp = fopen("/proc/net/route", "r");
+    if (!fp)
+        return -1;
+
+    char line[256], iface[64];
+    unsigned long dest, gw;
+    int rc = -1;
+    while (fgets(line, sizeof line, fp)) {
+        if (sscanf(line, "%63s %lx %lx", iface, &dest, &gw) == 3 && dest == 0 && gw != 0) {
+            snprintf(out, size, "%lu.%lu.%lu.%lu",
+                     gw & 0xff, (gw >> 8) & 0xff, (gw >> 16) & 0xff, (gw >> 24) & 0xff);
+            rc = 0;
+            break;
+        }
+    }
+    fclose(fp);
+    return rc;
+}
+
 void config_defaults(ors_config_t *c)
 {
     memset(c, 0, sizeof *c);
@@ -79,5 +105,8 @@ int config_load(const char *path, ors_config_t *c)
     }
 
     fclose(fp);
+
+    if (!strcmp(c->db_host, "wsl-host") && default_gateway(c->db_host, sizeof c->db_host) < 0)
+        fprintf(stderr, "config %s: cannot find the Windows host address for db_host = wsl-host\n", path);
     return 0;
 }

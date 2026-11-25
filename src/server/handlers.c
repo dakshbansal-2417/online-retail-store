@@ -509,9 +509,16 @@ static void h_cart_add(session_t *s, int argc, char **argv, resp_t *r)
         resp_err(r, "You can buy at most %d units of one product", MAX_QTY_PER_ITEM);
         return;
     }
+    if (stock == 0) {
+        resp_err(r, "Sorry, '%s' is out of stock", name);
+        return;
+    }
     if (in_cart + qty > stock) {
-        resp_err(r, "Only %ld unit(s) of '%s' available (you already have %ld in your cart)",
-                 stock, name, in_cart);
+        if (in_cart)
+            resp_err(r, "Only %ld unit(s) of '%s' available (you already have %ld in your cart)",
+                     stock, name, in_cart);
+        else
+            resp_err(r, "Only %ld unit(s) of '%s' available", stock, name);
         return;
     }
     if (db_exec(s->db,
@@ -843,7 +850,7 @@ static void h_my_orders(session_t *s, int argc, char **argv, resp_t *r)
              "SELECT o.order_id AS 'Order', DATE_FORMAT(o.order_date, " DT ") AS Placed, "
              "(SELECT SUM(quantity) FROM order_items WHERE order_id = o.order_id) AS Items, "
              "o.total_amount AS 'Total (Rs)', o.status AS Status, o.payment_status AS Payment "
-             "FROM orders o WHERE o.user_id = %ld ORDER BY o.order_date DESC", s->user_id);
+             "FROM orders o WHERE o.user_id = %ld ORDER BY o.order_date DESC, o.order_id DESC", s->user_id);
     resp_ok(r, "Your orders");
     int n = add_table(s, r, NULL, sql);
     if (n < 0)
@@ -1239,7 +1246,7 @@ static void h_list_orders(session_t *s, int argc, char **argv, resp_t *r)
         "(SELECT SUM(quantity) FROM order_items WHERE order_id = o.order_id) AS Items, "
         "o.total_amount AS 'Total (Rs)', o.status AS Status, o.payment_status AS Payment "
         "FROM orders o JOIN users u ON u.user_id = o.user_id %s "
-        "ORDER BY o.order_date DESC LIMIT 200", where);
+        "ORDER BY o.order_date DESC, o.order_id DESC LIMIT 200", where);
     if (!res) { db_fail(r); return; }
     resp_ok(r, "%llu order(s)%s%s", (unsigned long long)mysql_num_rows(res), *status ? " with status " : "", status);
     resp_result(r, res);
@@ -1573,11 +1580,21 @@ static const char *role_denied(const session_t *s, int role)
 static void h_help(session_t *s, int argc, char **argv, resp_t *r)
 {
     (void)argc; (void)argv;
-    resp_ok(r, "Commands available to you (fields separated by '|')");
-    resp_rowv(r, 2, "Command", "Usage");
-    for (size_t i = 0; i < NCOMMANDS; i++)
-        if (!role_denied(s, COMMANDS[i].role))
-            resp_rowv(r, 2, COMMANDS[i].name, COMMANDS[i].usage);
+    resp_ok(r, "Commands available to you. Send fields separated by '|', e.g. LOGIN|alice|Secret@123");
+    resp_rowv(r, 2, "Command", "Fields");
+    for (size_t i = 0; i < NCOMMANDS; i++) {
+        if (role_denied(s, COMMANDS[i].role))
+            continue;
+        /* show "username password" instead of "LOGIN|username|password":
+         * '|' cannot be used inside a response cell */
+        char fields[160];
+        const char *u = strchr(COMMANDS[i].usage, ORS_SEP);
+        snprintf(fields, sizeof fields, "%s", u ? u + 1 : "-");
+        for (char *p = fields; *p; p++)
+            if (*p == ORS_SEP)
+                *p = ' ';
+        resp_rowv(r, 2, COMMANDS[i].name, fields);
+    }
 }
 
 void handle_request(session_t *s, char *line, resp_t *r)

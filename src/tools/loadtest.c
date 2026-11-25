@@ -36,6 +36,7 @@ typedef struct {
 
 static const char *g_host = "127.0.0.1";
 static const char *g_port = "8080";
+static const char *g_checkout = "CHECKOUT|COD";
 
 static int conn_open(conn_t *c)
 {
@@ -137,7 +138,7 @@ static int child_main(int id, long pid, long qty, int ready_fd, int start_fd)
         return c.fd >= 0 ? EX_SETUP : EX_CONN;
     }
 
-    int rc = conn_cmd(&c, msg, sizeof msg, "CHECKOUT|COD");
+    int rc = conn_cmd(&c, msg, sizeof msg, "%s", g_checkout);
     printf("[client %2d] %s: %s\n", id, rc == 1 ? "ORDER PLACED" : "rejected", msg);
     conn_cmd(&c, msg, sizeof msg, "QUIT");
     close(c.fd);
@@ -167,8 +168,9 @@ static int admin_set_stock(const char *user, const char *pw, long pid, long stoc
 static void usage(const char *prog)
 {
     fprintf(stderr,
-            "Usage: %s -i PRODUCT_ID [-n CLIENTS] [-q QTY] [-H HOST] [-p PORT]\n"
+            "Usage: %s -i PRODUCT_ID [-n CLIENTS] [-q QTY] [-H HOST] [-p PORT] [-m cod|card]\n"
             "          [-s STOCK -a ADMIN_USER -w ADMIN_PASSWORD]\n"
+            "  -m card  pay by test card, so every order also forks a payment gateway process\n"
             "Example: %s -i 3 -n 20 -s 5 -a admin -w 'Admin@123'\n"
             "         (20 customers race for 5 units: exactly 5 orders must succeed)\n",
             prog, prog);
@@ -180,8 +182,16 @@ int main(int argc, char **argv)
     int n = 10, opt;
     const char *admin = NULL, *admin_pw = NULL;
 
-    while ((opt = getopt(argc, argv, "i:n:q:H:p:s:a:w:h")) != -1) {
+    while ((opt = getopt(argc, argv, "i:n:q:H:p:s:a:w:m:h")) != -1) {
         switch (opt) {
+        case 'm':
+            if (!strcmp(optarg, "card"))
+                g_checkout = "CHECKOUT|CARD|4111111111111111|12/30|123";
+            else if (strcmp(optarg, "cod") != 0) {
+                usage(argv[0]);
+                return 1;
+            }
+            break;
         case 'i': pid = atol(optarg); break;
         case 'n': n = atoi(optarg); break;
         case 'q': qty = atol(optarg); break;
@@ -212,7 +222,8 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    printf("Starting %d customer processes, each buying %ld unit(s) of product %ld...\n", n, qty, pid);
+    printf("Starting %d customer processes, each buying %ld unit(s) of product %ld (%s)...\n",
+           n, qty, pid, strstr(g_checkout, "CARD") ? "card payment" : "cash on delivery");
     fflush(stdout);
 
     pid_t *kids = calloc((size_t)n, sizeof *kids);
